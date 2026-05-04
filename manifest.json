@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "LogIT",
+  "version": "1.0.1", 
+  "description": "Logs library transactions and manual services.",
+  "permissions": [
+    "storage",
+    "downloads"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "logit@georgebrown.ca",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+  "icons": {
+    "48": "icon.svg",
+    "96": "icon.svg"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Tracker Controls",
+    "default_icon": "icon.svg"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}

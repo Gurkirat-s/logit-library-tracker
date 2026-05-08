@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "LogIT",
-  "version": "1.0.1", 
+  "name": "Library Tracker",
+  "version": "1.0.2",
   "description": "Logs library transactions and manual services.",
   "permissions": [
     "storage",
@@ -14,8 +14,11 @@
     "gecko": {
       "id": "logit@georgebrown.ca",
       "strict_min_version": "140.0",
+      "update_url": "https://github.com/Gurkirat-s/logit-library-tracker/raw/refs/heads/main/updates.json",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     }
   },
@@ -30,8 +33,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }

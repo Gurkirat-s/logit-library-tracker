@@ -1,33 +1,44 @@
-import { useState } from 'react';
-import reactLogo from '@/assets/react.svg';
-import wxtLogo from '/wxt.svg';
 import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
     <>
-      <div>
-        <a href="https://wxt.dev" target="_blank">
-          <img src={wxtLogo} className="logo" alt="WXT logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className="header-row">
+        <h2>Library Tracker</h2>
+        <select id="locationSelect" defaultValue="">
+          <option value="" disabled>
+            Select Location
+          </option>
+          <option value="Casa Loma">Casa Loma</option>
+          <option value="Waterfront">Waterfront</option>
+          <option value="St. James">St. James</option>
+          <option value="TMU">TMU</option>
+        </select>
       </div>
-      <h1>WXT + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+
+      <div className="controls-row">
+        <button id="toggleBtn">Start Record</button>
+        <button id="panelBtn">Show Panel</button>
+        <button id="exportBtn">Export CSV</button>
       </div>
-      <p className="read-the-docs">
-        Click on the WXT and React logos to learn more
-      </p>
+
+      <div className="stats-box">
+        <div className="stats-header">Session Totals</div>
+        <table id="stats-table">
+          <tbody>
+            <tr>
+              <td style={{ color: '#aaa' }}>No data yet...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Recent Activity</h3>
+      <div id="log-container">
+        {/* We will dynamically inject React log entries here later */}
+      </div>
+
+      <button id="clearMemBtn">Clear All Memory</button>
     </>
   );
 }

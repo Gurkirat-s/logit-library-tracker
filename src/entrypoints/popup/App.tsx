@@ -1,6 +1,23 @@
 import './App.css';
 
 function App() {
+  const [showPanel, setShowPanel] = useState(false);
+
+  useEffect(() => {
+    console.log('Hello');
+    browser.storage.local.get('showPanel').then((data) => {
+      console.log(data);
+      setShowPanel(!!data.showPanel);
+    });
+  });
+
+  const togglePanel = async () => {
+    console.log('Button Clicked');
+    const newState: boolean = !showPanel;
+    setShowPanel(newState);
+    await browser.storage.local.set({ showPanel: newState });
+  };
+
   return (
     <>
       <div className="header-row">
@@ -18,7 +35,9 @@ function App() {
 
       <div className="controls-row">
         <button id="toggleBtn">Start Record</button>
-        <button id="panelBtn">Show Panel</button>
+        <button id="panelBtn" onClick={togglePanel}>
+          {showPanel ? 'Hide Panel' : 'Show Panel'}
+        </button>
         <button id="exportBtn">Export CSV</button>
       </div>
 
@@ -34,9 +53,7 @@ function App() {
       </div>
 
       <h3>Recent Activity</h3>
-      <div id="log-container">
-        {/* We will dynamically inject React log entries here later */}
-      </div>
+      <div id="log-container">{/* Transaction Entries */}</div>
 
       <button id="clearMemBtn">Clear All Memory</button>
     </>

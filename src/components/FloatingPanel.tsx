@@ -1,18 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { saveLog } from '../utils/logger';
+import panelCss from './FloatingPanel.css?inline'; // Using WXT's inline CSS
 
 interface FloatingPanelProps {
   userLocation: string;
 }
 
 export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
-  // 1. State to track the current drag offset
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-
-  // Remember exactly where the mouse grabbed the handle
   const dragStart = useRef({ x: 0, y: 0 });
 
-  // Triggered when the user clicks down on the textured handle
+  // Drag logic
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     dragStart.current = {
@@ -21,39 +20,56 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
     };
   };
 
-  // Track mouse movement while dragging
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
-
-      // Calculate new position
       setPosition({
         x: e.clientX - dragStart.current.x,
         y: e.clientY - dragStart.current.y,
       });
     };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
+    const handleMouseUp = () => setIsDragging(false);
 
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
-
-    // Cleanup
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging]);
 
+  // Click handler for all manual service buttons
+  const handleServiceClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    const btn = e.currentTarget;
+    const serviceId = btn.getAttribute('data-id');
+    if (!serviceId) return;
+
+    //Save original styles
+    const originalText = btn.innerText;
+    const originalColor = btn.style.backgroundColor;
+
+    //Apply visual feedback
+    btn.innerText = '✓';
+    btn.style.backgroundColor = '#28a745'; // Success green
+
+    //Revert after 800ms
+    setTimeout(() => {
+      btn.innerText = originalText;
+      btn.style.backgroundColor = originalColor;
+    }, 800);
+
+    //Send to storage
+    const virtualUrl = 'manual-entry://' + serviceId;
+    console.log('Manual Service Clicked:', serviceId, virtualUrl); // Delete after
+    await saveLog('Manual', virtualUrl);
+  };
+
   return (
     <div
       className="floating-panel"
       style={{
-        //Apply the position
         transform: `translate(${position.x}px, ${position.y}px)`,
         transition: isDragging ? 'none' : 'transform 0.1s ease-out',
       }}
@@ -64,24 +80,48 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
         onMouseDown={handleMouseDown}
       ></div>
 
-      <button data-id="Print Assistance">Print Help</button>
-      <button data-id="WiFi">WiFi</button>
-      <button data-id="Password/Account">Password/Account</button>
+      {/* onClick handler added to every button */}
+      <button data-id="Print Assistance" onClick={handleServiceClick}>
+        Print Help
+      </button>
+      <button data-id="WiFi" onClick={handleServiceClick}>
+        WiFi
+      </button>
+      <button data-id="Password/Account" onClick={handleServiceClick}>
+        Password/Account
+      </button>
 
       {userLocation === 'Casa Loma' && (
-        <button data-id="3D-Print">3D-Print</button>
+        <button data-id="3D-Print" onClick={handleServiceClick}>
+          3D-Print
+        </button>
       )}
 
-      <button data-id="Directions">Directions</button>
-      <button data-id="Miscellaneous">Misc</button>
+      <button data-id="Directions" onClick={handleServiceClick}>
+        Directions
+      </button>
+      <button data-id="Miscellaneous" onClick={handleServiceClick}>
+        Misc
+      </button>
 
       <div className="menu-container">
         <button style={{ backgroundColor: '#468faf' }}>Software ▲</button>
         <div className="submenu">
-          <button data-id="Software_-_AppsAnywhere">AppsAnywhere</button>
-          <button data-id="Software_-_Auto_Desk">Auto Desk</button>
-          <button data-id="Software_-_Office365">Office365</button>
-          <button data-id="Software_-_Other">Other</button>
+          <button
+            data-id="Software_-_AppsAnywhere"
+            onClick={handleServiceClick}
+          >
+            AppsAnywhere
+          </button>
+          <button data-id="Software_-_Auto_Desk" onClick={handleServiceClick}>
+            Auto Desk
+          </button>
+          <button data-id="Software_-_Office365" onClick={handleServiceClick}>
+            Office365
+          </button>
+          <button data-id="Software_-_Other" onClick={handleServiceClick}>
+            Other
+          </button>
         </div>
       </div>
     </div>

@@ -172,3 +172,16 @@ export function formatCSVDate(dateObj: Date) {
   const dd = String(dateObj.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
+
+export function getDayOfWeek(dateObj: Date) {
+  const days = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ];
+  return days[dateObj.getDay()];
+}

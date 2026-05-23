@@ -1,7 +1,8 @@
 body {
   width: 380px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
   padding: 15px 20px;
   color: #333;
   background-color: #fff;
@@ -64,15 +65,15 @@ button:active {
 }
 
 /* Button Colors */
-#toggleBtn {
+#recordBtn {
   background-color: #0366d6;
   color: white;
 }
-#toggleBtn:hover {
+#recordBtn:hover {
   background-color: #005cc5;
 }
 
-#toggleBtn.recording {
+#recordBtn.recording {
   background-color: #d73a49;
   border-color: #d73a49;
   animation: pulse 2s infinite;

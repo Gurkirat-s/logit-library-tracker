@@ -28,7 +28,7 @@ export default defineContentScript({
     setupAutoTrackers(currentHostname);
 
     // Setup React UI Panel Injection
-    let ui: any = null;
+    let ui: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
 
     const mountPanel = async (location: string) => {
       if (ui) return;

@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getTransactionDetails, formatCSVDate } from '../../utils/parser';
+import {
+  getTransactionDetails,
+  formatCSVDate,
+  formatCSVTime,
+  getDayOfWeek,
+} from '../../utils/parser';
 import { type LogEntry } from '../../utils/logger';
 import './App.css';
 
@@ -65,6 +70,48 @@ function App() {
     }
   };
 
+  const exportCSV = () => {
+    if (logs.length === 0) {
+      alert('No data to export.');
+      return;
+    }
+
+    let csvContent =
+      'Location,Date,Day_of_Week,Time,Method,Category,Specific_Service,Input_ID,Full_URL\n';
+
+    logs.forEach((log) => {
+      const cleanUrl = log.url.replace(/"/g, '""');
+      const details = getTransactionDetails(log.url);
+      const dateObj = new Date(log.time);
+
+      const dateIso = formatCSVDate(dateObj);
+      const dayOfWeek = getDayOfWeek(dateObj);
+      const timeStr = formatCSVTime(dateObj);
+
+      let cleanId = '';
+      // Validate 9-digit student IDs or 13-digit item barcodes
+      if (/^\d{9}$/.test(log.number) || /^\d{13}$/.test(log.number)) {
+        cleanId = log.number;
+      }
+
+      // We explicitly label Manual transactions using your corrected categorization preference
+      const isManual = details.method === 'Manual';
+      const finalMethod = isManual ? 'Manual' : details.method;
+
+      csvContent += `"${location}","${dateIso}","${dayOfWeek}","${timeStr}","${finalMethod}","${details.category}","${details.service}","${cleanId}","${cleanUrl}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'library_stats.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const todayDateStr = formatCSVDate(new Date());
 
   // filter logs for today's date
@@ -123,7 +170,9 @@ function App() {
         <button id="panelBtn" onClick={togglePanel}>
           {showPanel ? 'Hide Panel' : 'Show Panel'}
         </button>
-        <button id="exportBtn">Export CSV</button>
+        <button id="exportBtn" onClick={exportCSV}>
+          Export CSV
+        </button>
       </div>
 
       <div className="stats-box">
@@ -189,7 +238,9 @@ function App() {
         )}
       </div>
 
-      <button id="clearMemBtn">Clear All Memory</button>
+      <button id="clearMemBtn" onClick={clearMemory}>
+        Clear All Memory
+      </button>
     </>
   );
 }

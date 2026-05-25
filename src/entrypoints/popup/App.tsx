@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  getTransactionDetails,
-  formatCSVDate,
-  formatCSVTime,
-  getDayOfWeek,
-} from '../../utils/parser';
+import { formatCSVDate, formatCSVTime, getDayOfWeek } from '../../utils/parser';
 import { type LogEntry } from '../../utils/logger';
 import './App.css';
 
@@ -25,7 +20,6 @@ function App() {
     browser.storage.local
       .get(['showPanel', 'location', 'isRecording', 'logs'])
       .then((data: StoredData) => {
-        console.log(data);
         setShowPanel(!!data.showPanel);
         setIsRecording(!!data.isRecording);
         setLocation(typeof data.location === 'string' ? data.location : '');
@@ -53,7 +47,6 @@ function App() {
   };
 
   const togglePanel = async () => {
-    console.log('Button Clicked');
     const newState: boolean = !showPanel;
     setShowPanel(newState);
     await browser.storage.local.set({ showPanel: newState });
@@ -81,7 +74,6 @@ function App() {
 
     logs.forEach((log) => {
       const cleanUrl = log.url.replace(/"/g, '""');
-      const details = getTransactionDetails(log.url);
       const dateObj = new Date(log.time);
 
       const dateIso = formatCSVDate(dateObj);
@@ -89,16 +81,18 @@ function App() {
       const timeStr = formatCSVTime(dateObj);
 
       let cleanId = '';
-      // Validate 9-digit student IDs or 13-digit item barcodes
-      if (/^\d{9}$/.test(log.number) || /^\d{13}$/.test(log.number)) {
+      if (
+        log.number &&
+        (/^\d{9}$/.test(log.number) || /^\d{13}$/.test(log.number))
+      ) {
         cleanId = log.number;
       }
 
-      // We explicitly label Manual transactions using your corrected categorization preference
-      const isManual = details.method === 'Manual';
-      const finalMethod = isManual ? 'Manual' : details.method;
+      const isManual = log.method === 'Manual';
+      const finalMethod = isManual ? 'Manual' : log.method;
 
-      csvContent += `"${location}","${dateIso}","${dayOfWeek}","${timeStr}","${finalMethod}","${details.category}","${details.service}","${cleanId}","${cleanUrl}"\n`;
+      // Access properties directly from the log object!
+      csvContent += `"${location}","${dateIso}","${dayOfWeek}","${timeStr}","${finalMethod}","${log.category}","${log.service}","${cleanId}","${cleanUrl}"\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -114,22 +108,20 @@ function App() {
 
   const todayDateStr = formatCSVDate(new Date());
 
-  // filter logs for today's date
   const todaysLogs = logs.filter((log) => {
     const logDate = new Date(log.time);
     return formatCSVDate(logDate) === todayDateStr;
   });
 
-  // Calculate session stats
   const counts: Record<string, number> = {};
   todaysLogs.forEach((log) => {
-    const details = getTransactionDetails(log.url);
-    let statName = details.service;
-    if (details.category === 'Circulation') {
-      statName = `Circulation: ${details.service}`;
+    // Access properties directly from the log object!
+    let statName = log.service;
+    if (log.category === 'Circulation') {
+      statName = `Circulation: ${log.service}`;
     } else if (
       ['AppsAnywhere', 'Auto Desk', 'Office365', 'Software (Other)'].includes(
-        details.service,
+        log.service,
       )
     ) {
       statName = 'Software';
@@ -207,20 +199,21 @@ function App() {
             .reverse()
             .slice(0, 50)
             .map((log, index) => {
-              const details = getTransactionDetails(log.url);
               let borderColor = '#ccc';
-              if (details.category === 'Circulation') borderColor = '#fd7e14';
-              else if (details.category === 'ID Card Services')
+
+              // Access properties directly from the log object!
+              if (log.category === 'Circulation') borderColor = '#fd7e14';
+              else if (log.category === 'ID Card Services')
                 borderColor = '#0d6efd';
-              else if (details.category === 'IT & Software')
+              else if (log.category === 'IT & Software')
                 borderColor = '#6f42c1';
-              else if (details.category === 'Printing') borderColor = '#28a745';
-              else if (details.category === 'General Assistance')
+              else if (log.category === 'Printing') borderColor = '#28a745';
+              else if (log.category === 'General Assistance')
                 borderColor = '#6c757d';
 
-              let displayName = details.service;
-              if (details.category === 'Circulation')
-                displayName = `Circulation: ${details.service}`;
+              let displayName = log.service;
+              if (log.category === 'Circulation')
+                displayName = `Circulation: ${log.service}`;
 
               return (
                 <div

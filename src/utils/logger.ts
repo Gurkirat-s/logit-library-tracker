@@ -1,11 +1,16 @@
+import { getTransactionDetails } from './parser';
+
 export interface LogEntry {
-  number: string;
+  number: string | null;
   url: string;
   time: string;
+  method: string;
+  category: string;
+  service: string;
 }
 
 export const saveLog = async (
-  number: string,
+  number: string | null,
   overrideUrl: string | null = null,
 ) => {
   // Fetch current state of isRecording flag and logs stored in storage
@@ -34,8 +39,19 @@ export const saveLog = async (
     if (!currentUrl.startsWith('manual-entry')) return;
   }
 
-  // Save the new log
-  logs.push({ number: number, url: currentUrl, time: timestamp });
+  // Streamlined Pipeline: Parse the data NOW, not during render
+  const details = getTransactionDetails(currentUrl);
+
+  // Save the newly structured log
+  logs.push({
+    number: number,
+    url: currentUrl,
+    time: timestamp,
+    method: details.method,
+    category: details.category,
+    service: details.service,
+  });
+
   await browser.storage.local.set({ logs: logs });
-  console.log('Log saved:', number, currentUrl);
+  console.log('Structured Log saved:', number, details.service);
 };

@@ -9,11 +9,19 @@ import FloatingPanel from '../components/FloatingPanel';
 import panelCss from '../components/FloatingPanel.css?inline';
 import { setupAutoTrackers } from '../utils/trackers';
 
+interface LocalStorageData {
+  showPanel?: boolean;
+  location?: string;
+}
+
 export default defineContentScript({
+  // The script loads on every single page
   matches: ['<all_urls>'],
 
   async main(ctx: ContentScriptContext) {
     const currentHostname = window.location.hostname;
+
+    // Only fire up the barcode/DOM listeners on authorized  sites
     const isAllowedAutoTracker =
       currentHostname.includes('alma.exlibrisgroup.com') ||
       currentHostname.includes('gbcllc02.gbc.local') ||
@@ -22,12 +30,10 @@ export default defineContentScript({
       currentHostname.includes('idm.georgebrown.ca') ||
       currentHostname.includes('llcprint.georgebrown.ca');
 
-    if (!isAllowedAutoTracker) return;
+    if (isAllowedAutoTracker) {
+      setupAutoTrackers(currentHostname);
+    }
 
-    // Initialize background DOM listeners/EventHadlers for auto-tracking
-    setupAutoTrackers(currentHostname);
-
-    // Setup React UI Panel Injection
     let ui: Awaited<ReturnType<typeof createShadowRootUi>> | null = null;
 
     const mountPanel = async (location: string) => {
@@ -61,23 +67,21 @@ export default defineContentScript({
       }
     };
 
-    // Mount Panel if needed on load
     const initialData = (await browser.storage.local.get([
       'showPanel',
       'location',
-    ])) as {
-      showPanel?: boolean;
-      location?: string;
-    };
+    ])) as LocalStorageData;
 
-    if (initialData.showPanel) mountPanel(initialData.location || '');
+    if (initialData.showPanel) {
+      mountPanel(initialData.location || '');
+    }
 
-    // Listen for toggle changes from the popup
     browser.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.showPanel) {
         if (changes.showPanel.newValue) {
-          browser.storage.local.get('location').then((data: any) => {
-            mountPanel(data.location || '');
+          browser.storage.local.get('location').then((data) => {
+            const typedData = data as LocalStorageData;
+            mountPanel(typedData.location || '');
           });
         } else {
           unmountPanel();

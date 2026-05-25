@@ -1,77 +1,94 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { saveLog } from '../utils/logger';
-import panelCss from './FloatingPanel.css?inline'; // Using WXT's inline CSS
+import panelCss from './FloatingPanel.css?inline';
 
 interface FloatingPanelProps {
   userLocation: string;
 }
 
 export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0 });
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  // Drag logic
+  // Drag refs
+  const isDragging = useRef(false);
+  const position = useRef({ x: 0, y: 0 });
+  const dragStart = useRef({ x: 0, y: 0 });
+  const isFirstDrag = useRef(true);
+
   const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
+    isDragging.current = true;
+
+    if (panelRef.current && isFirstDrag.current) {
+      const rect = panelRef.current.getBoundingClientRect();
+      panelRef.current.style.bottom = 'auto';
+      panelRef.current.style.right = 'auto';
+      panelRef.current.style.left = `${rect.left}px`;
+      panelRef.current.style.top = `${rect.top}px`;
+      isFirstDrag.current = false;
+    }
+
     dragStart.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+      x: e.clientX - position.current.x,
+      y: e.clientY - position.current.y,
     };
+
+    document.body.style.userSelect = 'none';
   };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      setPosition({
-        x: e.clientX - dragStart.current.x,
-        y: e.clientY - dragStart.current.y,
-      });
-    };
-    const handleMouseUp = () => setIsDragging(false);
+      if (!isDragging.current || !panelRef.current) return;
 
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
+      const newX = e.clientX - dragStart.current.x;
+      const newY = e.clientY - dragStart.current.y;
+
+      position.current = { x: newX, y: newY };
+      panelRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        document.body.style.userSelect = '';
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging]);
+  }, []);
 
-  // Click handler for all manual service buttons
   const handleServiceClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     const btn = e.currentTarget;
     const serviceId = btn.getAttribute('data-id');
     if (!serviceId) return;
 
-    //Save original styles
     const originalText = btn.innerText;
     const originalColor = btn.style.backgroundColor;
 
-    //Apply visual feedback
     btn.innerText = '✓';
-    btn.style.backgroundColor = '#28a745'; // Success green
+    btn.style.backgroundColor = '#28a745';
 
-    //Revert after 800ms
     setTimeout(() => {
       btn.innerText = originalText;
       btn.style.backgroundColor = originalColor;
     }, 800);
 
-    //Send to storage
     const virtualUrl = 'manual-entry://' + serviceId;
-    console.log('Manual Service Clicked:', serviceId, virtualUrl); // Delete after
     await saveLog('Manual', virtualUrl);
   };
 
   return (
     <div
+      ref={panelRef}
       className="floating-panel"
       style={{
-        transform: `translate(${position.x}px, ${position.y}px)`,
-        transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+        transform: `translate(${position.current.x}px, ${position.current.y}px)`,
+        willChange: 'transform',
       }}
     >
       <div
@@ -80,7 +97,6 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
         onMouseDown={handleMouseDown}
       ></div>
 
-      {/* onClick handler added to every button */}
       <button data-id="Print Assistance" onClick={handleServiceClick}>
         Print Help
       </button>
@@ -105,7 +121,7 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
       </button>
 
       <div className="menu-container">
-        <button style={{ backgroundColor: '#468faf' }}>Software ▲</button>
+        <button>Software ▲</button>
         <div className="submenu">
           <button
             data-id="Software_-_AppsAnywhere"

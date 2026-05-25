@@ -7,19 +7,24 @@ export interface LogEntry {
   method: string;
   category: string;
   service: string;
+  location: string;
 }
 
 export const saveLog = async (
   number: string | null,
   overrideUrl: string | null = null,
 ) => {
-  // Fetch current state of isRecording flag and logs stored in storage
-  const data = (await browser.storage.local.get(['isRecording', 'logs'])) as {
+  // Fetch current state of isRecording, logs, AND the location at this exact moment
+  const data = (await browser.storage.local.get([
+    'isRecording',
+    'logs',
+    'location',
+  ])) as {
     isRecording?: boolean;
     logs?: LogEntry[];
+    location?: string;
   };
 
-  // Respect the recording toggle!
   if (!data.isRecording) {
     console.log('Logging paused. Ignored:', number);
     return;
@@ -29,7 +34,9 @@ export const saveLog = async (
   const currentUrl = overrideUrl || window.location.href;
   const timestamp = new Date().toISOString();
 
-  // Prevent rapid duplicate logs (except for manual entries)
+  // Capture the location right now
+  const currentLocation = data.location || 'Unknown_Location';
+
   const lastEntry = logs[logs.length - 1];
   if (
     lastEntry &&
@@ -39,10 +46,8 @@ export const saveLog = async (
     if (!currentUrl.startsWith('manual-entry')) return;
   }
 
-  // Streamlined Pipeline: Parse the data NOW, not during render
   const details = getTransactionDetails(currentUrl);
 
-  // Save the newly structured log
   logs.push({
     number: number,
     url: currentUrl,
@@ -50,8 +55,15 @@ export const saveLog = async (
     method: details.method,
     category: details.category,
     service: details.service,
+    location: currentLocation,
   });
 
   await browser.storage.local.set({ logs: logs });
-  console.log('Structured Log saved:', number, details.service);
+  console.log(
+    'Structured Log saved:',
+    number,
+    details.service,
+    'at',
+    currentLocation,
+  );
 };

@@ -52,6 +52,7 @@ function App() {
     await browser.storage.local.set({ showPanel: newState });
   };
 
+  // Full UI Reset
   const clearMemory = async () => {
     if (
       window.confirm(
@@ -60,6 +61,8 @@ function App() {
     ) {
       await browser.storage.local.clear();
       setLogs([]);
+      setLocation('');
+      setIsRecording(false);
     }
   };
 
@@ -91,8 +94,9 @@ function App() {
       const isManual = log.method === 'Manual';
       const finalMethod = isManual ? 'Manual' : log.method;
 
-      // Access properties directly from the log object!
-      csvContent += `"${location}","${dateIso}","${dayOfWeek}","${timeStr}","${finalMethod}","${log.category}","${log.service}","${cleanId}","${cleanUrl}"\n`;
+      const logLocation = log.location || 'Unknown';
+
+      csvContent += `"${logLocation}","${dateIso}","${dayOfWeek}","${timeStr}","${finalMethod}","${log.category}","${log.service}","${cleanId}","${cleanUrl}"\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -115,7 +119,6 @@ function App() {
 
   const counts: Record<string, number> = {};
   todaysLogs.forEach((log) => {
-    // Access properties directly from the log object!
     let statName = log.service;
     if (log.category === 'Circulation') {
       statName = `Circulation: ${log.service}`;
@@ -137,7 +140,6 @@ function App() {
         <h2>Library Tracker</h2>
         <select
           id="locationSelect"
-          defaultValue=""
           value={location}
           onChange={handleLocationChange}
         >
@@ -201,7 +203,6 @@ function App() {
             .map((log, index) => {
               let borderColor = '#ccc';
 
-              // Access properties directly from the log object!
               if (log.category === 'Circulation') borderColor = '#fd7e14';
               else if (log.category === 'ID Card Services')
                 borderColor = '#0d6efd';

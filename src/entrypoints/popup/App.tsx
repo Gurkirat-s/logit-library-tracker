@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { formatCSVDate, formatCSVTime, getDayOfWeek } from '../../utils/parser';
+import logoUrl from '../../assets/icon.svg';
 import { type LogEntry } from '../../utils/logger';
 import './App.css';
 
@@ -152,7 +153,7 @@ function App() {
     <>
       <div className="header-row">
         <div className="brand-container">
-          <div className="brand-logo"></div>
+          <img src={logoUrl} alt="LogIT Logo" className="brand-logo" />
           <h2>LogIT</h2>
         </div>
         <select

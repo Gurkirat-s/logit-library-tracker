@@ -36,6 +36,30 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
   };
 
   useEffect(() => {
+    //Check storage for a saved position and apply it
+    browser.storage.local.get('panelPosition').then((data) => {
+      const pos = data.panelPosition as
+        | { top: number; left: number }
+        | undefined;
+
+      if (pos && panelRef.current) {
+        // Boundary Check: Ensure the panel doesn't go off-screen
+        const safeTop = Math.max(0, Math.min(pos.top, window.innerHeight - 50));
+        const safeLeft = Math.max(
+          0,
+          Math.min(pos.left, window.innerWidth - 100),
+        );
+
+        // Override the default CSS 'bottom/right' alignment
+        panelRef.current.style.bottom = 'auto';
+        panelRef.current.style.right = 'auto';
+        panelRef.current.style.top = `${safeTop}px`;
+        panelRef.current.style.left = `${safeLeft}px`;
+
+        isFirstDrag.current = false;
+      }
+    });
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current || !panelRef.current) return;
 
@@ -50,6 +74,14 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
       if (isDragging.current) {
         isDragging.current = false;
         document.body.style.userSelect = '';
+
+        //On Drag End save the final absolute coordinates to storage
+        if (panelRef.current) {
+          const rect = panelRef.current.getBoundingClientRect();
+          browser.storage.local.set({
+            panelPosition: { top: rect.top, left: rect.left },
+          });
+        }
       }
     };
 

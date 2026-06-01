@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
-import {
-  getTransactionDetails,
-  formatCSVDate,
-  formatCSVTime,
-  getDayOfWeek,
-} from '../../utils/parser';
+import { formatCSVDate, formatCSVTime, getDayOfWeek } from '../../utils/parser';
+import logoUrl from '../../assets/icon.svg';
 import { type LogEntry } from '../../utils/logger';
 import './App.css';
 
@@ -25,7 +21,6 @@ function App() {
     browser.storage.local
       .get(['showPanel', 'location', 'isRecording', 'logs'])
       .then((data: StoredData) => {
-        console.log(data);
         setShowPanel(!!data.showPanel);
         setIsRecording(!!data.isRecording);
         setLocation(typeof data.location === 'string' ? data.location : '');
@@ -53,7 +48,6 @@ function App() {
   };
 
   const togglePanel = async () => {
-    console.log('Button Clicked');
     const newState: boolean = !showPanel;
     setShowPanel(newState);
     await browser.storage.local.set({ showPanel: newState });
@@ -67,6 +61,8 @@ function App() {
     ) {
       await browser.storage.local.clear();
       setLogs([]);
+      setLocation('');
+      setIsRecording(false);
     }
   };
 
@@ -77,11 +73,10 @@ function App() {
     }
 
     let csvContent =
-      'Location,Date,Day_of_Week,Time,Method,Category,Specific_Service,Input_ID,Full_URL\n';
+      'Location,Date,Day_of_Week,Time,Method,Category,Specific_Service,Duration,Input_ID,Full_URL\n';
 
     logs.forEach((log) => {
       const cleanUrl = log.url.replace(/"/g, '""');
-      const details = getTransactionDetails(log.url);
       const dateObj = new Date(log.time);
 
       const dateIso = formatCSVDate(dateObj);
@@ -89,16 +84,19 @@ function App() {
       const timeStr = formatCSVTime(dateObj);
 
       let cleanId = '';
-      // Validate 9-digit student IDs or 13-digit item barcodes
-      if (/^\d{9}$/.test(log.number) || /^\d{13}$/.test(log.number)) {
+      if (
+        log.number &&
+        (/^\d{9}$/.test(log.number) || /^\d{13}$/.test(log.number))
+      ) {
         cleanId = log.number;
       }
 
-      // We explicitly label Manual transactions using your corrected categorization preference
-      const isManual = details.method === 'Manual';
-      const finalMethod = isManual ? 'Manual' : details.method;
+      const isManual = log.method === 'Manual';
+      const finalMethod = isManual ? 'Manual' : log.method;
+      const logLocation = log.location || 'Unknown';
+      const logDuration = log.duration || '';
 
-      csvContent += `"${location}","${dateIso}","${dayOfWeek}","${timeStr}","${finalMethod}","${details.category}","${details.service}","${cleanId}","${cleanUrl}"\n`;
+      csvContent += `"${logLocation}","${dateIso}","${dayOfWeek}","${timeStr}","${finalMethod}","${log.category}","${log.service}","${logDuration}","${cleanId}","${cleanUrl}"\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -114,22 +112,19 @@ function App() {
 
   const todayDateStr = formatCSVDate(new Date());
 
-  // filter logs for today's date
   const todaysLogs = logs.filter((log) => {
     const logDate = new Date(log.time);
     return formatCSVDate(logDate) === todayDateStr;
   });
 
-  // Calculate session stats
   const counts: Record<string, number> = {};
   todaysLogs.forEach((log) => {
-    const details = getTransactionDetails(log.url);
-    let statName = details.service;
-    if (details.category === 'Circulation') {
-      statName = `Circulation: ${details.service}`;
+    let statName = log.service;
+    if (log.category === 'Circulation') {
+      statName = `Circulation: ${log.service}`;
     } else if (
       ['AppsAnywhere', 'Auto Desk', 'Office365', 'Software (Other)'].includes(
-        details.service,
+        log.service,
       )
     ) {
       statName = 'Software';
@@ -139,13 +134,30 @@ function App() {
 
   const sortedStats = Object.entries(counts).sort((a, b) => b[1] - a[1]);
 
+  const getCategoryStyles = (category: string) => {
+    switch (category) {
+      case 'Circulation':
+        return { bg: '#fff7ed', border: '#fdba74', text: '#c2410c' }; // Orange
+      case 'ID Card Services':
+        return { bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' }; // Blue
+      case 'IT & Software':
+        return { bg: '#faf5ff', border: '#e9d5ff', text: '#6b21a8' }; // Purple
+      case 'Printing':
+        return { bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d' }; // Green
+      default:
+        return { bg: '#f8fafc', border: '#e2e8f0', text: '#475569' }; // Slate for General/Misc
+    }
+  };
+
   return (
     <>
       <div className="header-row">
-        <h2>Library Tracker</h2>
+        <div className="brand-container">
+          <img src={logoUrl} alt="LogIT Logo" className="brand-logo" />
+          <h2>LogIT</h2>
+        </div>
         <select
           id="locationSelect"
-          defaultValue=""
           value={location}
           onChange={handleLocationChange}
         >
@@ -167,7 +179,11 @@ function App() {
         >
           {isRecording ? 'Stop Recording' : 'Start Recording'}
         </button>
-        <button id="panelBtn" onClick={togglePanel}>
+        <button
+          id="panelBtn"
+          className={showPanel ? 'active-panel' : ''}
+          onClick={togglePanel}
+        >
           {showPanel ? 'Hide Panel' : 'Show Panel'}
         </button>
         <button id="exportBtn" onClick={exportCSV}>
@@ -175,31 +191,27 @@ function App() {
         </button>
       </div>
 
-      <div className="stats-box">
-        <div className="stats-header">Session Totals</div>
-        <table id="stats-table">
-          <tbody>
-            {sortedStats.length === 0 ? (
-              <tr>
-                <td style={{ color: '#aaa' }}>No data yet...</td>
-              </tr>
-            ) : (
-              sortedStats.map(([name, count]) => (
-                <tr key={name}>
-                  <td>{name}</td>
-                  <td className="count-col">{count}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="stats-header">Session Totals</div>
+      <div className="compact-stats-container">
+        {sortedStats.length === 0 ? (
+          <div style={{ color: '#94a3b8', fontSize: '12px' }}>
+            No data yet today...
+          </div>
+        ) : (
+          sortedStats.map(([name, count]) => (
+            <div className="stat-pill" key={name}>
+              <span className="stat-label">{name}</span>
+              <span className="stat-value">{count}</span>
+            </div>
+          ))
+        )}
       </div>
 
       <h3>Recent Activity</h3>
       <div id="log-container">
         {todaysLogs.length === 0 ? (
-          <div style={{ padding: '10px', color: '#ccc' }}>
-            No activity today.
+          <div style={{ padding: '10px', color: '#94a3b8' }}>
+            Awaiting first interaction...
           </div>
         ) : (
           todaysLogs
@@ -207,29 +219,26 @@ function App() {
             .reverse()
             .slice(0, 50)
             .map((log, index) => {
-              const details = getTransactionDetails(log.url);
-              let borderColor = '#ccc';
-              if (details.category === 'Circulation') borderColor = '#fd7e14';
-              else if (details.category === 'ID Card Services')
-                borderColor = '#0d6efd';
-              else if (details.category === 'IT & Software')
-                borderColor = '#6f42c1';
-              else if (details.category === 'Printing') borderColor = '#28a745';
-              else if (details.category === 'General Assistance')
-                borderColor = '#6c757d';
-
-              let displayName = details.service;
-              if (details.category === 'Circulation')
-                displayName = `Circulation: ${details.service}`;
+              const styles = getCategoryStyles(log.category);
+              let displayName = log.duration
+                ? `${log.service} (${log.duration})`
+                : log.service;
+              if (log.category === 'Circulation')
+                displayName = `Circulation: ${log.service}`;
 
               return (
                 <div
                   key={index}
                   className="log-entry"
-                  style={{ borderLeft: `4px solid ${borderColor}` }}
+                  style={{
+                    backgroundColor: styles.bg,
+                    borderLeft: `4px solid ${styles.border}`,
+                  }}
                 >
-                  <span style={{ fontWeight: 'bold' }}>{log.number}</span>
-                  <span className="log-time" style={{ fontSize: '10px' }}>
+                  <span className="log-id" style={{ color: styles.text }}>
+                    {log.number || 'Manual'}
+                  </span>
+                  <span className="log-service" style={{ color: styles.text }}>
                     {displayName}
                   </span>
                 </div>

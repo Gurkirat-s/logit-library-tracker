@@ -1,20 +1,31 @@
+import { getTransactionDetails } from './parser';
+
 export interface LogEntry {
-  number: string;
+  number: string | null;
   url: string;
   time: string;
+  method: string;
+  category: string;
+  service: string;
+  location: string;
+  duration?: string;
 }
 
 export const saveLog = async (
-  number: string,
+  number: string | null,
   overrideUrl: string | null = null,
+  duration: string | null = null,
 ) => {
-  // Fetch current state of isRecording flag and logs stored in storage
-  const data = (await browser.storage.local.get(['isRecording', 'logs'])) as {
+  const data = (await browser.storage.local.get([
+    'isRecording',
+    'logs',
+    'location',
+  ])) as {
     isRecording?: boolean;
     logs?: LogEntry[];
+    location?: string;
   };
 
-  // Respect the recording toggle!
   if (!data.isRecording) {
     console.log('Logging paused. Ignored:', number);
     return;
@@ -23,8 +34,8 @@ export const saveLog = async (
   const logs: LogEntry[] = data.logs || [];
   const currentUrl = overrideUrl || window.location.href;
   const timestamp = new Date().toISOString();
+  const currentLocation = data.location || 'Unknown_Location';
 
-  // Prevent rapid duplicate logs (except for manual entries)
   const lastEntry = logs[logs.length - 1];
   if (
     lastEntry &&
@@ -34,8 +45,23 @@ export const saveLog = async (
     if (!currentUrl.startsWith('manual-entry')) return;
   }
 
-  // Save the new log
-  logs.push({ number: number, url: currentUrl, time: timestamp });
+  const details = getTransactionDetails(currentUrl);
+
+  logs.push({
+    number: number,
+    url: currentUrl,
+    time: timestamp,
+    method: details.method,
+    category: details.category,
+    service: details.service,
+    location: currentLocation,
+    duration: duration || '',
+  });
+
   await browser.storage.local.set({ logs: logs });
-  console.log('Log saved:', number, currentUrl);
+  console.log(
+    'Structured Log saved:',
+    details.service,
+    duration ? `(${duration})` : '',
+  );
 };

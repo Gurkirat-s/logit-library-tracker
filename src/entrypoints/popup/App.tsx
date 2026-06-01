@@ -52,7 +52,6 @@ function App() {
     await browser.storage.local.set({ showPanel: newState });
   };
 
-  // Full UI Reset
   const clearMemory = async () => {
     if (
       window.confirm(
@@ -93,7 +92,6 @@ function App() {
 
       const isManual = log.method === 'Manual';
       const finalMethod = isManual ? 'Manual' : log.method;
-
       const logLocation = log.location || 'Unknown';
       const logDuration = log.duration || '';
 
@@ -135,10 +133,28 @@ function App() {
 
   const sortedStats = Object.entries(counts).sort((a, b) => b[1] - a[1]);
 
+  const getCategoryStyles = (category: string) => {
+    switch (category) {
+      case 'Circulation':
+        return { bg: '#fff7ed', border: '#fdba74', text: '#c2410c' }; // Orange
+      case 'ID Card Services':
+        return { bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' }; // Blue
+      case 'IT & Software':
+        return { bg: '#faf5ff', border: '#e9d5ff', text: '#6b21a8' }; // Purple
+      case 'Printing':
+        return { bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d' }; // Green
+      default:
+        return { bg: '#f8fafc', border: '#e2e8f0', text: '#475569' }; // Slate for General/Misc
+    }
+  };
+
   return (
     <>
       <div className="header-row">
-        <h2>Library Tracker</h2>
+        <div className="brand-container">
+          <div className="brand-logo"></div>
+          <h2>LogIT</h2>
+        </div>
         <select
           id="locationSelect"
           value={location}
@@ -162,7 +178,11 @@ function App() {
         >
           {isRecording ? 'Stop Recording' : 'Start Recording'}
         </button>
-        <button id="panelBtn" onClick={togglePanel}>
+        <button
+          id="panelBtn"
+          className={showPanel ? 'active-panel' : ''}
+          onClick={togglePanel}
+        >
           {showPanel ? 'Hide Panel' : 'Show Panel'}
         </button>
         <button id="exportBtn" onClick={exportCSV}>
@@ -170,31 +190,27 @@ function App() {
         </button>
       </div>
 
-      <div className="stats-box">
-        <div className="stats-header">Session Totals</div>
-        <table id="stats-table">
-          <tbody>
-            {sortedStats.length === 0 ? (
-              <tr>
-                <td style={{ color: '#aaa' }}>No data yet...</td>
-              </tr>
-            ) : (
-              sortedStats.map(([name, count]) => (
-                <tr key={name}>
-                  <td>{name}</td>
-                  <td className="count-col">{count}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="stats-header">Session Totals</div>
+      <div className="compact-stats-container">
+        {sortedStats.length === 0 ? (
+          <div style={{ color: '#94a3b8', fontSize: '12px' }}>
+            No data yet today...
+          </div>
+        ) : (
+          sortedStats.map(([name, count]) => (
+            <div className="stat-pill" key={name}>
+              <span className="stat-label">{name}</span>
+              <span className="stat-value">{count}</span>
+            </div>
+          ))
+        )}
       </div>
 
       <h3>Recent Activity</h3>
       <div id="log-container">
         {todaysLogs.length === 0 ? (
-          <div style={{ padding: '10px', color: '#ccc' }}>
-            No activity today.
+          <div style={{ padding: '10px', color: '#94a3b8' }}>
+            Awaiting first interaction...
           </div>
         ) : (
           todaysLogs
@@ -202,18 +218,10 @@ function App() {
             .reverse()
             .slice(0, 50)
             .map((log, index) => {
-              let borderColor = '#ccc';
-
-              if (log.category === 'Circulation') borderColor = '#fd7e14';
-              else if (log.category === 'ID Card Services')
-                borderColor = '#0d6efd';
-              else if (log.category === 'IT & Software')
-                borderColor = '#6f42c1';
-              else if (log.category === 'Printing') borderColor = '#28a745';
-              else if (log.category === 'General Assistance')
-                borderColor = '#6c757d';
-
-              let displayName = log.service;
+              const styles = getCategoryStyles(log.category);
+              let displayName = log.duration
+                ? `${log.service} (${log.duration})`
+                : log.service;
               if (log.category === 'Circulation')
                 displayName = `Circulation: ${log.service}`;
 
@@ -221,10 +229,15 @@ function App() {
                 <div
                   key={index}
                   className="log-entry"
-                  style={{ borderLeft: `4px solid ${borderColor}` }}
+                  style={{
+                    backgroundColor: styles.bg,
+                    borderLeft: `4px solid ${styles.border}`,
+                  }}
                 >
-                  <span style={{ fontWeight: 'bold' }}>{log.number}</span>
-                  <span className="log-time" style={{ fontSize: '10px' }}>
+                  <span className="log-id" style={{ color: styles.text }}>
+                    {log.number || 'Manual'}
+                  </span>
+                  <span className="log-service" style={{ color: styles.text }}>
                     {displayName}
                   </span>
                 </div>

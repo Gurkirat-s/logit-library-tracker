@@ -127,7 +127,7 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
         <div
           style={{
             display: 'flex',
-            gap: '4px',
+            gap: '6px',
             alignItems: 'center',
             paddingLeft: '4px',
           }}
@@ -135,39 +135,65 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
           <span
             style={{
               fontSize: '11px',
-              fontWeight: 'bold',
-              color: '#666',
+              fontWeight: '700',
+              color: '#64748b',
               marginRight: '4px',
             }}
           >
-            Time:
+            TIME:
           </span>
+          {/* Soft Green */}
           <button
-            style={{ backgroundColor: '#28a745' }}
+            style={{
+              backgroundColor: '#dcfce7',
+              color: '#166534',
+              borderColor: '#bbf7d0',
+            }}
             onClick={() => handleTimeSelect('< 2m')}
           >
             &lt; 2m
           </button>
+          {/* Soft Orange */}
           <button
-            style={{ backgroundColor: '#fd7e14' }}
+            style={{
+              backgroundColor: '#ffedd5',
+              color: '#c2410c',
+              borderColor: '#fed7aa',
+            }}
             onClick={() => handleTimeSelect('2-5m')}
           >
             2-5m
           </button>
+          {/* Soft Red */}
           <button
-            style={{ backgroundColor: '#dc3545' }}
+            style={{
+              backgroundColor: '#fee2e2',
+              color: '#b91c1c',
+              borderColor: '#fecaca',
+            }}
             onClick={() => handleTimeSelect('5-15m')}
           >
             5-15m
           </button>
+          {/* Soft Purple */}
           <button
-            style={{ backgroundColor: '#6f42c1' }}
+            style={{
+              backgroundColor: '#f3e8ff',
+              color: '#7e22ce',
+              borderColor: '#e9d5ff',
+            }}
             onClick={() => handleTimeSelect('15m+')}
           >
             15m+
           </button>
+
           <button
-            style={{ backgroundColor: '#6c757d', marginLeft: '6px' }}
+            style={{
+              backgroundColor: '#f8fafc',
+              color: '#475569',
+              marginLeft: '4px',
+              borderStyle: 'dashed',
+            }}
             onClick={() => setPendingService(null)}
           >
             Cancel

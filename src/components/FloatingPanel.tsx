@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { saveLog } from '../utils/logger';
 import panelCss from './FloatingPanel.css?inline';
 
@@ -9,7 +9,9 @@ interface FloatingPanelProps {
 export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Drag refs
+  // Time Tracking State
+  const [pendingService, setPendingService] = useState<string | null>(null);
+
   const isDragging = useRef(false);
   const position = useRef({ x: 0, y: 0 });
   const dragStart = useRef({ x: 0, y: 0 });
@@ -36,26 +38,22 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
   };
 
   useEffect(() => {
-    //Check storage for a saved position and apply it
     browser.storage.local.get('panelPosition').then((data) => {
       const pos = data.panelPosition as
         | { top: number; left: number }
         | undefined;
 
       if (pos && panelRef.current) {
-        // Boundary Check: Ensure the panel doesn't go off-screen
         const safeTop = Math.max(0, Math.min(pos.top, window.innerHeight - 50));
         const safeLeft = Math.max(
           0,
           Math.min(pos.left, window.innerWidth - 100),
         );
 
-        // Override the default CSS 'bottom/right' alignment
         panelRef.current.style.bottom = 'auto';
         panelRef.current.style.right = 'auto';
         panelRef.current.style.top = `${safeTop}px`;
         panelRef.current.style.left = `${safeLeft}px`;
-
         isFirstDrag.current = false;
       }
     });
@@ -75,7 +73,6 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
         isDragging.current = false;
         document.body.style.userSelect = '';
 
-        //On Drag End save the final absolute coordinates to storage
         if (panelRef.current) {
           const rect = panelRef.current.getBoundingClientRect();
           browser.storage.local.set({
@@ -94,24 +91,21 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
     };
   }, []);
 
-  const handleServiceClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleServiceClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     const btn = e.currentTarget;
     const serviceId = btn.getAttribute('data-id');
-    if (!serviceId) return;
+    if (serviceId) {
+      setPendingService(serviceId);
+    }
+  };
 
-    const originalText = btn.innerText;
-    const originalColor = btn.style.backgroundColor;
+  const handleTimeSelect = async (duration: string) => {
+    if (!pendingService) return;
+    const virtualUrl = 'manual-entry://' + pendingService;
 
-    btn.innerText = '✓';
-    btn.style.backgroundColor = '#28a745';
+    await saveLog('Manual', virtualUrl, duration);
 
-    setTimeout(() => {
-      btn.innerText = originalText;
-      btn.style.backgroundColor = originalColor;
-    }, 800);
-
-    const virtualUrl = 'manual-entry://' + serviceId;
-    await saveLog('Manual', virtualUrl);
+    setPendingService(null);
   };
 
   return (
@@ -129,49 +123,109 @@ export default function FloatingPanel({ userLocation }: FloatingPanelProps) {
         onMouseDown={handleMouseDown}
       ></div>
 
-      <button data-id="Print Assistance" onClick={handleServiceClick}>
-        Print Help
-      </button>
-      <button data-id="WiFi" onClick={handleServiceClick}>
-        WiFi
-      </button>
-      <button data-id="Password/Account" onClick={handleServiceClick}>
-        Password/Account
-      </button>
-
-      {userLocation === 'Casa Loma' && (
-        <button data-id="3D-Print" onClick={handleServiceClick}>
-          3D-Print
-        </button>
-      )}
-
-      <button data-id="Directions" onClick={handleServiceClick}>
-        Directions
-      </button>
-      <button data-id="Miscellaneous" onClick={handleServiceClick}>
-        Misc
-      </button>
-
-      <div className="menu-container">
-        <button>Software ▲</button>
-        <div className="submenu">
-          <button
-            data-id="Software_-_AppsAnywhere"
-            onClick={handleServiceClick}
+      {pendingService ? (
+        <div
+          style={{
+            display: 'flex',
+            gap: '4px',
+            alignItems: 'center',
+            paddingLeft: '4px',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 'bold',
+              color: '#666',
+              marginRight: '4px',
+            }}
           >
-            AppsAnywhere
+            Time:
+          </span>
+          <button
+            style={{ backgroundColor: '#28a745' }}
+            onClick={() => handleTimeSelect('< 2m')}
+          >
+            &lt; 2m
           </button>
-          <button data-id="Software_-_Auto_Desk" onClick={handleServiceClick}>
-            Auto Desk
+          <button
+            style={{ backgroundColor: '#fd7e14' }}
+            onClick={() => handleTimeSelect('2-5m')}
+          >
+            2-5m
           </button>
-          <button data-id="Software_-_Office365" onClick={handleServiceClick}>
-            Office365
+          <button
+            style={{ backgroundColor: '#dc3545' }}
+            onClick={() => handleTimeSelect('5-15m')}
+          >
+            5-15m
           </button>
-          <button data-id="Software_-_Other" onClick={handleServiceClick}>
-            Other
+          <button
+            style={{ backgroundColor: '#6f42c1' }}
+            onClick={() => handleTimeSelect('15m+')}
+          >
+            15m+
+          </button>
+          <button
+            style={{ backgroundColor: '#6c757d', marginLeft: '6px' }}
+            onClick={() => setPendingService(null)}
+          >
+            Cancel
           </button>
         </div>
-      </div>
+      ) : (
+        <>
+          <button data-id="Print Assistance" onClick={handleServiceClick}>
+            Print Help
+          </button>
+          <button data-id="WiFi" onClick={handleServiceClick}>
+            WiFi
+          </button>
+          <button data-id="Password/Account" onClick={handleServiceClick}>
+            Password/Account
+          </button>
+
+          {userLocation === 'Casa Loma' && (
+            <button data-id="3D-Print" onClick={handleServiceClick}>
+              3D-Print
+            </button>
+          )}
+
+          <button data-id="Directions" onClick={handleServiceClick}>
+            Directions
+          </button>
+          <button data-id="Miscellaneous" onClick={handleServiceClick}>
+            Misc
+          </button>
+
+          <div className="menu-container">
+            <button>Software ▲</button>
+            <div className="submenu">
+              <button
+                data-id="Software_-_AppsAnywhere"
+                onClick={handleServiceClick}
+              >
+                AppsAnywhere
+              </button>
+              <button
+                data-id="Software_-_Auto_Desk"
+                onClick={handleServiceClick}
+              >
+                Auto Desk
+              </button>
+              <button
+                data-id="Software_-_Office365"
+                onClick={handleServiceClick}
+              >
+                Office365
+              </button>
+              <button data-id="Software_-_Other" onClick={handleServiceClick}>
+                Other
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

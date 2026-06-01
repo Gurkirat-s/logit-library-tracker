@@ -73,7 +73,7 @@ function App() {
     }
 
     let csvContent =
-      'Location,Date,Day_of_Week,Time,Method,Category,Specific_Service,Input_ID,Full_URL\n';
+      'Location,Date,Day_of_Week,Time,Method,Category,Specific_Service,Duration,Input_ID,Full_URL\n';
 
     logs.forEach((log) => {
       const cleanUrl = log.url.replace(/"/g, '""');
@@ -95,8 +95,9 @@ function App() {
       const finalMethod = isManual ? 'Manual' : log.method;
 
       const logLocation = log.location || 'Unknown';
+      const logDuration = log.duration || '';
 
-      csvContent += `"${logLocation}","${dateIso}","${dayOfWeek}","${timeStr}","${finalMethod}","${log.category}","${log.service}","${cleanId}","${cleanUrl}"\n`;
+      csvContent += `"${logLocation}","${dateIso}","${dayOfWeek}","${timeStr}","${finalMethod}","${log.category}","${log.service}","${logDuration}","${cleanId}","${cleanUrl}"\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv' });

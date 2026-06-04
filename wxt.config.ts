@@ -7,9 +7,10 @@ export default defineConfig({
     baseIconPath: 'assets/icon.svg',
   },
   srcDir: 'src',
+  manifestVersion: 3,
   manifest: {
-    name: 'Library Tracker',
-    version: '1.0.2',
+    name: 'LogIT Library Tracker',
+    version: '1.0.5',
     description: 'Logs library transactions and manual services.',
     permissions: ['storage', 'downloads'],
     host_permissions: ['<all_urls>'],
